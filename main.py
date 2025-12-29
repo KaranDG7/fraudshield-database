@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from database import SessionLocal, engine
-from models import Base, Account
-import os
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine, Base
+from models import Account
 
-# Create tables on startup (Render-safe)
+# Create tables at startup
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="FraudShield Reference Backend")
@@ -12,9 +12,17 @@ app = FastAPI(title="FraudShield Reference Backend")
 def root():
     return {"status": "FraudShield backend running"}
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/api/account/{vpa}")
 def get_account(vpa: str):
-    db = SessionLocal()
+    db: Session = SessionLocal()
+
     account = db.query(Account).filter(Account.vpa == vpa).first()
     db.close()
 
@@ -29,5 +37,6 @@ def get_account(vpa: str):
         "kyc_status": account.kyc_status,
         "geohash": account.geohash,
         "account_age_days": account.account_age_days,
-        "status": account.status
+        "status": account.status,
+        "fraud_reports": account.fraud_reports  # ⭐ REQUIRED
     }

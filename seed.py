@@ -1,65 +1,32 @@
-from database import engine, SessionLocal
-from models import Base, Account
+import csv
+from database import Base, engine, SessionLocal
+from models import Account
 
 Base.metadata.create_all(bind=engine)
 
-db = SessionLocal()
+def seed_accounts():
+    db = SessionLocal()
 
-accounts = [
-    Account(
-        vpa="rahul123@oksbi",
-        acc_holder_name="Rahul",
-        account_type="PERSONAL",
-        mcc=None,
-        kyc_status="LOW",
-        geohash=None,
-        account_age_days=30,
-        status="ACTIVE"
-    ),
-    Account(
-        vpa="ganeshtea@okaxis",
-        acc_holder_name="Ganesh Tea Stall",
-        account_type="MERCHANT",
-        mcc="5812",
-        kyc_status="FULL",
-        geohash="te7x8hjn6f",
-        account_age_days=900,
-        status="ACTIVE"
-    ),
-    Account(
-        vpa="karan@okaxis",
-        acc_holder_name="Karan",
-        account_type="PERSONAL",
-        mcc=None,
-        kyc_status="FULL",
-        geohash=None,
-        account_age_days=600,
-        status="ACTIVE"
-    ),
-    Account(
-            vpa="paytmqr56924@icici",
-            acc_holder_name="TechOn Electronics",
-            account_type="MERCHANT",
-            mcc=8828,
-            kyc_status="FULL",
-            geohash="te7utkex6g",
-            account_age_days=600,
-            status="ACTIVE"
-    ),
-    Account(
-            vpa="paytmqr56925@icici",
-            acc_holder_name="Rakesh Kirana Store",
-            account_type="MERCHANT",
-            mcc=8928,
-            kyc_status="FULL",
-            geohash="gpdr8b52g4",
-            account_age_days=600,
-            status="ACTIVE"
-    )
-]
+    with open("fraudshield_accounts.csv", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
 
-db.add_all(accounts)
-db.commit()
-db.close()
+        for row in reader:
+            account = Account(
+                vpa=row["vpa"],
+                acc_holder_name=row["acc_holder_name"],
+                account_type=row["account_type"],
+                mcc=row.get("mcc") or None,
+                kyc_status=row["kyc_status"],
+                geohash=row.get("geohash") or None,
+                account_age_days=int(row["account_age_days"]) if row["account_age_days"] else 0,
+                status=row.get("status", "ACTIVE"),
+                fraud_reports=int(row["fraud_reports"]) if row.get("fraud_reports") else 0
+            )
+            db.add(account)
 
-print("Reference account database initialized.")
+    db.commit()
+    db.close()
+    print("✅ Database seeded successfully")
+
+if __name__ == "__main__":
+    seed_accounts()
