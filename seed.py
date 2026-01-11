@@ -7,20 +7,21 @@ Base.metadata.create_all(bind=engine)
 def seed_accounts():
     db = SessionLocal()
 
-    with open("fraudshield_accounts.csv", newline="", encoding="utf-8") as f:
+    with open("bankserver.csv", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
 
         for row in reader:
+            # prevent duplicate VPAs
+            if db.query(Account).filter(Account.vpa == row["VPA"]).first():
+                continue
+
             account = Account(
-                vpa=row["vpa"],
-                acc_holder_name=row["acc_holder_name"],
-                account_type=row["account_type"],
-                mcc=row.get("mcc") or None,
-                kyc_status=row["kyc_status"],
+                vpa=row["VPA"].strip(),
+                name=row["name"].strip(),
+                mid=int(float(row["MID"])) if row.get("MID") else None,
+                mcc=int(row["MCC"]) if row.get("MCC") else None,
                 geohash=row.get("geohash") or None,
-                account_age_days=int(row["account_age_days"]) if row["account_age_days"] else 0,
-                status=row.get("status", "ACTIVE"),
-                fraud_reports=int(row["fraud_reports"]) if row.get("fraud_reports") else 0
+                fraud_reports=int(row["flags"]) if row.get("flags") else 0
             )
             db.add(account)
 
